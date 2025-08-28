@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motion Simulation: Linear vs Circular</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e90ff;
+            --secondary: #ff6b6b;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --panel: rgba(10, 10, 10, 0.85);
+            --success: #2ecc71;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #1a2530);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: var(--panel);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .simulation-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .visualization {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        @media (max-width: 900px) {
+            .visualization {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .simulation-panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title.circular {
+            color: var(--secondary);
+        }
+        
+        .canvas-container {
+            width: 100%;
+            height: 300px;
+            background: #1a2432;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+        
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        button.circular {
+            background: var(--secondary);
+        }
+        
+        button.reset {
+            background: #7f8c8d;
+        }
+        
+        button.start {
+            background: var(--success);
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .metric {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .circular .metric-value {
+            color: var(--secondary);
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .explanation {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .explanation h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        
+        .concepts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .concepts {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .concept {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .concept h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        
+        .concept.circular h3 {
+            color: var(--secondary);
+        }
+        
+        .concept p {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .formula {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Motion Simulation: Linear vs Circular Paths</h1>
+            <p class="subtitle">Explore the differences between linear motion (straight line) and circular motion with interactive simulations</p>
+        </header>
+        
+        <div class="simulation-container">
+            <div class="visualization">
+                <div class="simulation-panel">
+                    <h2 class="panel-title">Linear Motion</h2>
+                    <div class="canvas-container" id="linear-canvas"></div>
+                    
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="linear-velocity">Initial Velocity (m/s)</label>
+                            <input type="range" id="linear-velocity" min="0" max="10" step="0.5" value="3">
+                            <div class="value-display">
+                                <span>0</span>
+                                <span id="linear-velocity-value">3.0</span>
+                                <span>10</span>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="linear-acceleration">Acceleration (m/s²)</label>
+                            <input type="range" id="linear-acceleration" min="-5" max="5" step="0.25" value="1">
+                            <div class="value-display">
+                                <span>-5</span>
+                                <span id="linear-acceleration-value">1.0</span>
+                                <span>5</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="buttons">
+                        <button class="start" id="linear-start">Start</button>
+                        <button class="reset" id="linear-reset">Reset</button>
+                    </div>
+                    
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value" id="linear-time">0.00</div>
+                            <div class="metric-label">Time (s)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="linear-position">0.00</div>
+                            <div class="metric-label">Position (m)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="linear-velocity-display">0.00</div>
+                            <div class="metric-label">Velocity (m/s)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="linear-acceleration-display">0.00</div>
+                            <div class="metric-label">Acceleration (m/s²)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="simulation-panel">
+                    <h2 class="panel-title circular">Circular Motion</h2>
+                    <div class="canvas-container" id="circular-canvas"></div>
+                    
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="circular-radius">Radius (m)</label>
+                            <input type="range" id="circular-radius" min="5" max="20" step="1" value="10">
+                            <div class="value-display">
+                                <span>5</span>
+                                <span id="circular-radius-value">10</span>
+                                <span>20</span>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="circular-velocity">Angular Velocity (rad/s)</label>
+                            <input type="range" id="circular-velocity" min="0.5" max="5" step="0.1" value="1.5">
+                            <div class="value-display">
+                                <span>0.5</span>
+                                <span id="circular-velocity-value">1.5</span>
+                                <span>5</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="buttons">
+                        <button class="start circular" id="circular-start">Start</button>
+                        <button class="reset" id="circular-reset">Reset</button>
+                    </div>
+                    
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value" id="circular-time">0.00</div>
+                            <div class="metric-label">Time (s)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="circular-angle">0.00</div>
+                            <div class="metric-label">Angle (rad)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="circular-velocity-display">0.00</div>
+                            <div class="metric-label">Velocity (m/s)</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="circular-acceleration-display">0.00</div>
+                            <div class="metric-label">Acceleration (m/s²)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h2>Physics of Motion</h2>
+                <p>Motion can be described as the change in position of an object over time. Here we compare two fundamental types of motion:</p>
+                
+                <div class="concepts">
+                    <div class="concept">
+                        <h3>Linear Motion</h3>
+                        <p>Motion along a straight line, described by:</p>
+                        <div class="formula">s = s₀ + v₀t + ½at²</div>
+                        <p>Where <strong>s</strong> is position, <strong>v₀</strong> is initial velocity, <strong>a</strong> is acceleration, and <strong>t</strong> is time.</p>
+                        <p>In linear motion, velocity changes uniformly with acceleration, and position changes quadratically with time when acceleration is constant.</p>
+                    </div>
+                    
+                    <div class="concept circular">
+                        <h3>Circular Motion</h3>
+                        <p>Motion along a circular path, described by:</p>
+                        <div class="formula">θ = θ₀ + ωt</div>
+                        <p>Where <strong>θ</strong> is angular position, <strong>ω</strong> is angular velocity, and <strong>t</strong> is time.</p>
+                        <p>In uniform circular motion, the speed is constant but velocity changes direction continuously, resulting in centripetal acceleration toward the center:</p>
+                        <div class="formula">a = v²/r = ω²r</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Three.js scenes
+        function initScene(containerId, isCircular = false) {
+            const container = document.getElementById(containerId);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Create scene
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a192f);
+            
+            // Create camera
+            const camera = isCircular 
+                ? new THREE.PerspectiveCamera(60, width / height, 0.1, 1000)
+                : new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            
+            // Create renderer
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 15);
+            scene.add(directionalLight);
+            
+            // Create objects based on motion type
+            if (isCircular) {
+                // Circular motion setup
+                const radius = 10;
+                
+                // Create circular track
+                const trackGeometry = new THREE.TorusGeometry(radius, 0.3, 16, 100);
+                const trackMaterial = new THREE.MeshStandardMaterial({ color: 0x3498db });
+                const track = new THREE.Mesh(trackGeometry, trackMaterial);
+                track.rotation.x = Math.PI / 2;
+                scene.add(track);
+                
+                // Create center point
+                const centerGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+                const centerMaterial = new THREE.MeshStandardMaterial({ color: 0xe74c3c });
+                const center = new THREE.Mesh(centerGeometry, centerMaterial);
+                scene.add(center);
+                
+                // Create moving object
+                const objectGeometry = new THREE.SphereGeometry(1, 32, 32);
+                const objectMaterial = new THREE.MeshStandardMaterial({ color: 0xf1c40f });
+                const object = new THREE.Mesh(objectGeometry, objectMaterial);
+                object.position.set(radius, 0, 0);
+                scene.add(object);
+                
+                // Position camera for circular motion
+                camera.position.set(0, 20, 0);
+                camera.lookAt(0, 0, 0);
+                
+                return { scene, camera, renderer, object, track, center };
+            } else {
+                // Linear motion setup
+                const trackLength = 25;
+                
+                // Create track
+                const trackGeometry = new THREE.BoxGeometry(trackLength, 0.1, 2);
+                const trackMaterial = new THREE.MeshStandardMaterial({ color: 0x3498db });
+                const track = new THREE.Mesh(trackGeometry, trackMaterial);
+                scene.add(track);
+                
+                // Create start and end markers
+                const markerGeometry = new THREE.BoxGeometry(0.2, 0.5, 0.2);
+                const startMaterial = new THREE.MeshStandardMaterial({ color: 0x2ecc71 });
+                const endMaterial = new THREE.MeshStandardMaterial({ color: 0xe74c3c });
+                
+                const startMarker = new THREE.Mesh(markerGeometry, startMaterial);
+                startMarker.position.set(-trackLength/2, 0.25, 0);
+                scene.add(startMarker);
+                
+                const endMarker = new THREE.Mesh(markerGeometry, endMaterial);
+                endMarker.position.set(trackLength/2, 0.25, 0);
+                scene.add(endMarker);
+                
+                // Create moving object
+                const objectGeometry = new THREE.BoxGeometry(1.5, 1, 1);
+                const objectMaterial = new THREE.MeshStandardMaterial({ color: 0xf1c40f });
+                const object = new THREE.Mesh(objectGeometry, objectMaterial);
+                object.position.set(-trackLength/2, 0.5, 0);
+                scene.add(object);
+                
+                // Add distance markers
+                for (let i = -trackLength/2 + 5; i < trackLength/2; i += 5) {
+                    const marker = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.1, 0.3, 0.1),
+                        new THREE.MeshStandardMaterial({ color: 0xffffff })
+                    );
+                    marker.position.set(i, 0.15, 0);
+                    scene.add(marker);
+                }
+                
+                // Position camera for linear motion
+                camera.position.set(0, 5, 10);
+                camera.lookAt(0, 0, 0);
+                
+                return { scene, camera, renderer, object, track, startMarker, endMarker, trackLength };
+            }
+        }
+        
+        // Initialize simulations
+        const linearSim = initScene('linear-canvas', false);
+        const circularSim = initScene('circular-canvas', true);
+        
+        // Animation states
+        let linearAnimating = false;
+        let circularAnimating = false;
+        let linearTime = 0;
+        let circularTime = 0;
+        
+        // Physics parameters
+        let linearVelocity = 3;
+        let linearAcceleration = 1;
+        let circularRadius = 10;
+        let angularVelocity = 1.5;
+        
+        // Update display values
+        function updateDisplayValues() {
+            // Linear motion values
+            document.getElementById('linear-velocity-value').textContent = linearVelocity.toFixed(1);
+            document.getElementById('linear-acceleration-value').textContent = linearAcceleration.toFixed(2);
+            
+            // Circular motion values
+            document.getElementById('circular-radius-value').textContent = circularRadius;
+            document.getElementById('circular-velocity-value').textContent = angularVelocity.toFixed(1);
+        }
+        
+        // Update simulation parameters from UI
+        function updateParameters() {
+            linearVelocity = parseFloat(document.getElementById('linear-velocity').value);
+            linearAcceleration = parseFloat(document.getElementById('linear-acceleration').value);
+            circularRadius = parseFloat(document.getElementById('circular-radius').value);
+            angularVelocity = parseFloat(document.getElementById('circular-velocity').value);
+            
+            updateDisplayValues();
+            
+            // Update circular track radius
+            circularSim.track.geometry.dispose();
+            circularSim.track.geometry = new THREE.TorusGeometry(circularRadius, 0.3, 16, 100);
+        }
+        
+        // Reset simulations
+        function resetLinearSimulation() {
+            linearTime = 0;
+            linearSim.object.position.set(-linearSim.trackLength/2, 0.5, 0);
+            updateLinearMetrics();
+            linearAnimating = false;
+        }
+        
+        function resetCircularSimulation() {
+            circularTime = 0;
+            circularSim.object.position.set(circularRadius, 0, 0);
+            updateCircularMetrics();
+            circularAnimating = false;
+        }
+        
+        // Update metric displays
+        function updateLinearMetrics() {
+            const position = linearSim.object.position.x + linearSim.trackLength/2;
+            const velocity = linearVelocity + linearAcceleration * linearTime;
+            
+            document.getElementById('linear-time').textContent = linearTime.toFixed(2);
+            document.getElementById('linear-position').textContent = position.toFixed(2);
+            document.getElementById('linear-velocity-display').textContent = velocity.toFixed(2);
+            document.getElementById('linear-acceleration-display').textContent = linearAcceleration.toFixed(2);
+        }
+        
+        function updateCircularMetrics() {
+            const angle = angularVelocity * circularTime;
+            const velocity = angularVelocity * circularRadius;
+            const acceleration = angularVelocity * angularVelocity * circularRadius;
+            
+            document.getElementById('circular-time').textContent = circularTime.toFixed(2);
+            document.getElementById('circular-angle').textContent = angle.toFixed(2);
+            document.getElementById('circular-velocity-display').textContent = velocity.toFixed(2);
+            document.getElementById('circular-acceleration-display').textContent = acceleration.toFixed(2);
+        }
+        
+        // Animation functions
+        function animateLinear() {
+            if (!linearAnimating) return;
+            
+            linearTime += 0.05;
+            
+            // Calculate position using s = s0 + v0*t + 0.5*a*t^2
+            const displacement = linearVelocity * linearTime + 0.5 * linearAcceleration * linearTime * linearTime;
+            linearSim.object.position.x = -linearSim.trackLength/2 + displacement;
+            
+            // Check boundaries
+            if (Math.abs(linearSim.object.position.x) > linearSim.trackLength/2) {
+                linearAnimating = false;
+                linearSim.object.position.x = Math.sign(linearSim.object.position.x) * linearSim.trackLength/2;
+            }
+            
+            updateLinearMetrics();
+        }
+        
+        function animateCircular() {
+            if (!circularAnimating) return;
+            
+            circularTime += 0.05;
+            
+            // Calculate position using circular motion equations
+            const angle = angularVelocity * circularTime;
+            circularSim.object.position.x = circularRadius * Math.cos(angle);
+            circularSim.object.position.z = circularRadius * Math.sin(angle);
+            
+            updateCircularMetrics();
+        }
+        
+        // Render loops
+        function renderLinear() {
+            requestAnimationFrame(renderLinear);
+            animateLinear();
+            linearSim.renderer.render(linearSim.scene, linearSim.camera);
+        }
+        
+        function renderCircular() {
+            requestAnimationFrame(renderCircular);
+            animateCircular();
+            circularSim.renderer.render(circularSim.scene, circularSim.camera);
+        }
+        
+        // Event listeners
+        document.getElementById('linear-velocity').addEventListener('input', updateParameters);
+        document.getElementById('linear-acceleration').addEventListener('input', updateParameters);
+        document.getElementById('circular-radius').addEventListener('input', updateParameters);
+        document.getElementById('circular-velocity').addEventListener('input', updateParameters);
+        
+        document.getElementById('linear-start').addEventListener('click', function() {
+            linearAnimating = !linearAnimating;
+            this.textContent = linearAnimating ? 'Pause' : 'Start';
+        });
+        
+        document.getElementById('circular-start').addEventListener('click', function() {
+            circularAnimating = !circularAnimating;
+            this.textContent = circularAnimating ? 'Pause' : 'Start';
+        });
+        
+        document.getElementById('linear-reset').addEventListener('click', resetLinearSimulation);
+        document.getElementById('circular-reset').addEventListener('click', resetCircularSimulation);
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Linear simulation
+            const linearContainer = document.getElementById('linear-canvas');
+            const linearWidth = linearContainer.clientWidth;
+            const linearHeight = linearContainer.clientHeight;
+            
+            linearSim.camera.aspect = linearWidth / linearHeight;
+            linearSim.camera.updateProjectionMatrix();
+            linearSim.renderer.setSize(linearWidth, linearHeight);
+            
+            // Circular simulation
+            const circularContainer = document.getElementById('circular-canvas');
+            const circularWidth = circularContainer.clientWidth;
+            const circularHeight = circularContainer.clientHeight;
+            
+            circularSim.camera.aspect = circularWidth / circularHeight;
+            circularSim.camera.updateProjectionMatrix();
+            circularSim.renderer.setSize(circularWidth, circularHeight);
+        });
+        
+        // Initialize
+        updateParameters();
+        updateDisplayValues();
+        renderLinear();
+        renderCircular();
+    </script>
+</body>
+</html>
