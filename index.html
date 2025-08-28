@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motion Simulation: Linear vs Circular</title>
+    <title>Motion Simulation: Uniform vs Non-Uniform</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
     <style>
         :root {
-            --primary: #1e90ff;
-            --secondary: #ff6b6b;
+            --primary: #3498db;
+            --secondary: #e74c3c;
+            --accent: #2ecc71;
             --dark: #2c3e50;
             --light: #ecf0f1;
-            --panel: rgba(10, 10, 10, 0.85);
-            --success: #2ecc71;
+            --uniform: #9b59b6;
+            --non-uniform: #f39c12;
         }
         
         * {
@@ -27,6 +28,7 @@
             color: var(--light);
             min-height: 100vh;
             overflow-x: hidden;
+            line-height: 1.6;
         }
         
         .container {
@@ -38,21 +40,21 @@
         header {
             text-align: center;
             margin-bottom: 25px;
-            padding: 15px;
-            background: var(--panel);
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
         
         h1 {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             margin-bottom: 10px;
-            color: var(--primary);
+            color: var(--accent);
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             opacity: 0.9;
             max-width: 800px;
             margin: 0 auto;
@@ -61,13 +63,13 @@
         .simulation-container {
             display: flex;
             flex-direction: column;
-            gap: 25px;
+            gap: 30px;
         }
         
         .visualization {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            gap: 30px;
         }
         
         @media (max-width: 900px) {
@@ -77,25 +79,37 @@
         }
         
         .simulation-panel {
-            background: var(--panel);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             display: flex;
             flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        
+        .simulation-panel:hover {
+            transform: translateY(-5px);
         }
         
         .panel-title {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             margin-bottom: 15px;
-            color: var(--primary);
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .panel-title.circular {
-            color: var(--secondary);
+        .uniform-title {
+            color: var(--uniform);
+        }
+        
+        .non-uniform-title {
+            color: var(--non-uniform);
+        }
+        
+        .title-icon {
+            font-size: 1.8rem;
         }
         
         .canvas-container {
@@ -105,6 +119,30 @@
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .motion-type {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .motion-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .motion-btn.active {
+            background: var(--primary);
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
         }
         
         .controls {
@@ -123,10 +161,27 @@
         label {
             font-size: 0.9rem;
             opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
         input[type="range"] {
             width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
         }
         
         .value-display {
@@ -143,7 +198,7 @@
         }
         
         button {
-            padding: 10px 15px;
+            padding: 12px 15px;
             border: none;
             border-radius: 6px;
             background: var(--primary);
@@ -152,6 +207,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
             flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
         
         button:hover {
@@ -159,16 +218,12 @@
             transform: translateY(-2px);
         }
         
-        button.circular {
-            background: var(--secondary);
+        button.start {
+            background: var(--accent);
         }
         
         button.reset {
             background: #7f8c8d;
-        }
-        
-        button.start {
-            background: var(--success);
         }
         
         .metrics {
@@ -190,11 +245,14 @@
         .metric-value {
             font-size: 1.8rem;
             font-weight: 700;
-            color: var(--primary);
         }
         
-        .circular .metric-value {
-            color: var(--secondary);
+        .uniform .metric-value {
+            color: var(--uniform);
+        }
+        
+        .non-uniform .metric-value {
+            color: var(--non-uniform);
         }
         
         .metric-label {
@@ -203,7 +261,7 @@
         }
         
         .explanation {
-            background: var(--panel);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
             padding: 25px;
             margin-top: 25px;
@@ -213,7 +271,7 @@
         .explanation h2 {
             font-size: 1.8rem;
             margin-bottom: 15px;
-            color: var(--primary);
+            color: var(--accent);
         }
         
         .concepts {
@@ -238,11 +296,17 @@
         .concept h3 {
             font-size: 1.3rem;
             margin-bottom: 10px;
-            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .concept.circular h3 {
-            color: var(--secondary);
+        .concept.uniform h3 {
+            color: var(--uniform);
+        }
+        
+        .concept.non-uniform h3 {
+            color: var(--non-uniform);
         }
         
         .concept p {
@@ -252,55 +316,118 @@
         
         .formula {
             background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             margin: 10px 0;
             font-family: 'Courier New', monospace;
             text-align: center;
+        }
+        
+        .key-differences {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .key-differences h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            background: rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+        }
+        
+        .uniform-row {
+            color: var(--uniform);
+        }
+        
+        .non-uniform-row {
+            color: var(--non-uniform);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.7;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Motion Simulation: Linear vs Circular Paths</h1>
-            <p class="subtitle">Explore the differences between linear motion (straight line) and circular motion with interactive simulations</p>
+            <h1>Motion Simulation: Uniform vs Non-Uniform</h1>
+            <p class="subtitle">Explore the differences between uniform and non-uniform motion in both linear and circular paths</p>
         </header>
         
         <div class="simulation-container">
             <div class="visualization">
                 <div class="simulation-panel">
-                    <h2 class="panel-title">Linear Motion</h2>
+                    <h2 class="panel-title uniform-title">
+                        <span class="title-icon">↔</span>
+                        Linear Motion
+                    </h2>
+                    
+                    <div class="motion-type">
+                        <button class="motion-btn active" id="linear-uniform-btn">Uniform</button>
+                        <button class="motion-btn" id="linear-non-uniform-btn">Non-Uniform</button>
+                    </div>
+                    
                     <div class="canvas-container" id="linear-canvas"></div>
                     
                     <div class="controls">
                         <div class="control-group">
-                            <label for="linear-velocity">Initial Velocity (m/s)</label>
-                            <input type="range" id="linear-velocity" min="0" max="10" step="0.5" value="3">
+                            <label for="linear-velocity">
+                                <span>Velocity (m/s)</span>
+                            </label>
+                            <input type="range" id="linear-velocity" min="1" max="10" step="0.5" value="3">
                             <div class="value-display">
-                                <span>0</span>
+                                <span>1</span>
                                 <span id="linear-velocity-value">3.0</span>
                                 <span>10</span>
                             </div>
                         </div>
                         
-                        <div class="control-group">
-                            <label for="linear-acceleration">Acceleration (m/s²)</label>
-                            <input type="range" id="linear-acceleration" min="-5" max="5" step="0.25" value="1">
+                        <div class="control-group" id="linear-acceleration-control">
+                            <label for="linear-acceleration">
+                                <span>Acceleration (m/s²)</span>
+                            </label>
+                            <input type="range" id="linear-acceleration" min="-3" max="3" step="0.1" value="0.5">
                             <div class="value-display">
-                                <span>-5</span>
-                                <span id="linear-acceleration-value">1.0</span>
-                                <span>5</span>
+                                <span>-3</span>
+                                <span id="linear-acceleration-value">0.5</span>
+                                <span>3</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="buttons">
-                        <button class="start" id="linear-start">Start</button>
-                        <button class="reset" id="linear-reset">Reset</button>
+                        <button class="start" id="linear-start">
+                            <span>Start</span>
+                        </button>
+                        <button class="reset" id="linear-reset">
+                            <span>Reset</span>
+                        </button>
                     </div>
                     
-                    <div class="metrics">
+                    <div class="metrics uniform">
                         <div class="metric">
                             <div class="metric-value" id="linear-time">0.00</div>
                             <div class="metric-label">Time (s)</div>
@@ -321,12 +448,23 @@
                 </div>
                 
                 <div class="simulation-panel">
-                    <h2 class="panel-title circular">Circular Motion</h2>
+                    <h2 class="panel-title non-uniform-title">
+                        <span class="title-icon">🔄</span>
+                        Circular Motion
+                    </h2>
+                    
+                    <div class="motion-type">
+                        <button class="motion-btn active" id="circular-uniform-btn">Uniform</button>
+                        <button class="motion-btn" id="circular-non-uniform-btn">Non-Uniform</button>
+                    </div>
+                    
                     <div class="canvas-container" id="circular-canvas"></div>
                     
                     <div class="controls">
                         <div class="control-group">
-                            <label for="circular-radius">Radius (m)</label>
+                            <label for="circular-radius">
+                                <span>Radius (m)</span>
+                            </label>
                             <input type="range" id="circular-radius" min="5" max="20" step="1" value="10">
                             <div class="value-display">
                                 <span>5</span>
@@ -336,7 +474,9 @@
                         </div>
                         
                         <div class="control-group">
-                            <label for="circular-velocity">Angular Velocity (rad/s)</label>
+                            <label for="circular-velocity">
+                                <span>Angular Velocity (rad/s)</span>
+                            </label>
                             <input type="range" id="circular-velocity" min="0.5" max="5" step="0.1" value="1.5">
                             <div class="value-display">
                                 <span>0.5</span>
@@ -344,14 +484,30 @@
                                 <span>5</span>
                             </div>
                         </div>
+                        
+                        <div class="control-group" id="circular-acceleration-control">
+                            <label for="circular-acceleration">
+                                <span>Angular Acceleration (rad/s²)</span>
+                            </label>
+                            <input type="range" id="circular-acceleration" min="-1" max="1" step="0.1" value="0.2">
+                            <div class="value-display">
+                                <span>-1</span>
+                                <span id="circular-acceleration-value">0.2</span>
+                                <span>1</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="buttons">
-                        <button class="start circular" id="circular-start">Start</button>
-                        <button class="reset" id="circular-reset">Reset</button>
+                        <button class="start" id="circular-start">
+                            <span>Start</span>
+                        </button>
+                        <button class="reset" id="circular-reset">
+                            <span>Reset</span>
+                        </button>
                     </div>
                     
-                    <div class="metrics">
+                    <div class="metrics non-uniform">
                         <div class="metric">
                             <div class="metric-value" id="circular-time">0.00</div>
                             <div class="metric-label">Time (s)</div>
@@ -373,29 +529,67 @@
             </div>
             
             <div class="explanation">
-                <h2>Physics of Motion</h2>
-                <p>Motion can be described as the change in position of an object over time. Here we compare two fundamental types of motion:</p>
+                <h2>Physics of Motion: Uniform vs Non-Uniform</h2>
+                <p>Motion can be classified based on whether the velocity remains constant (uniform) or changes (non-uniform).</p>
                 
                 <div class="concepts">
-                    <div class="concept">
-                        <h3>Linear Motion</h3>
-                        <p>Motion along a straight line, described by:</p>
-                        <div class="formula">s = s₀ + v₀t + ½at²</div>
-                        <p>Where <strong>s</strong> is position, <strong>v₀</strong> is initial velocity, <strong>a</strong> is acceleration, and <strong>t</strong> is time.</p>
-                        <p>In linear motion, velocity changes uniformly with acceleration, and position changes quadratically with time when acceleration is constant.</p>
+                    <div class="concept uniform">
+                        <h3><span>↔</span> Uniform Motion</h3>
+                        <p>Motion where the velocity remains constant over time.</p>
+                        <div class="formula">
+                            For linear motion: v = constant<br>
+                            For circular motion: ω = constant
+                        </div>
+                        <p>In uniform motion, the object covers equal distances in equal intervals of time. There is no acceleration in the direction of motion (though circular motion has centripetal acceleration).</p>
                     </div>
                     
-                    <div class="concept circular">
-                        <h3>Circular Motion</h3>
-                        <p>Motion along a circular path, described by:</p>
-                        <div class="formula">θ = θ₀ + ωt</div>
-                        <p>Where <strong>θ</strong> is angular position, <strong>ω</strong> is angular velocity, and <strong>t</strong> is time.</p>
-                        <p>In uniform circular motion, the speed is constant but velocity changes direction continuously, resulting in centripetal acceleration toward the center:</p>
-                        <div class="formula">a = v²/r = ω²r</div>
+                    <div class="concept non-uniform">
+                        <h3><span>↕️</span> Non-Uniform Motion</h3>
+                        <p>Motion where the velocity changes with time.</p>
+                        <div class="formula">
+                            For linear motion: a = dv/dt ≠ 0<br>
+                            For circular motion: α = dω/dt ≠ 0
+                        </div>
+                        <p>In non-uniform motion, the object covers unequal distances in equal intervals of time. Acceleration is present in the direction of motion.</p>
                     </div>
+                </div>
+                
+                <div class="key-differences">
+                    <h3>Key Differences</h3>
+                    <table>
+                        <tr>
+                            <th>Characteristic</th>
+                            <th>Uniform Motion</th>
+                            <th>Non-Uniform Motion</th>
+                        </tr>
+                        <tr class="uniform-row">
+                            <td>Velocity</td>
+                            <td>Constant</td>
+                            <td>Changes with time</td>
+                        </tr>
+                        <tr class="non-uniform-row">
+                            <td>Acceleration</td>
+                            <td>Zero (linear) or centripetal only (circular)</td>
+                            <td>Present in direction of motion</td>
+                        </tr>
+                        <tr class="uniform-row">
+                            <td>Distance covered</td>
+                            <td>Equal in equal time intervals</td>
+                            <td>Unequal in equal time intervals</td>
+                        </tr>
+                        <tr class="non-uniform-row">
+                            <td>Graph of position vs time</td>
+                            <td>Straight line</td>
+                            <td>Curved line</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
+        
+        <footer>
+            <p>Interactive Physics Simulation | Uniform vs Non-Uniform Motion</p>
+        </footer>
     </div>
 
     <script>
@@ -452,11 +646,29 @@
                 object.position.set(radius, 0, 0);
                 scene.add(object);
                 
+                // Create velocity vector
+                const velocityVector = new THREE.ArrowHelper(
+                    new THREE.Vector3(1, 0, 0),
+                    new THREE.Vector3(0, 0, 0),
+                    3,
+                    0x00ff00
+                );
+                scene.add(velocityVector);
+                
+                // Create acceleration vector
+                const accelerationVector = new THREE.ArrowHelper(
+                    new THREE.Vector3(0, -1, 0),
+                    new THREE.Vector3(0, 0, 0),
+                    3,
+                    0xff0000
+                );
+                scene.add(accelerationVector);
+                
                 // Position camera for circular motion
                 camera.position.set(0, 20, 0);
                 camera.lookAt(0, 0, 0);
                 
-                return { scene, camera, renderer, object, track, center };
+                return { scene, camera, renderer, object, track, center, velocityVector, accelerationVector };
             } else {
                 // Linear motion setup
                 const trackLength = 25;
@@ -487,6 +699,24 @@
                 object.position.set(-trackLength/2, 0.5, 0);
                 scene.add(object);
                 
+                // Create velocity vector
+                const velocityVector = new THREE.ArrowHelper(
+                    new THREE.Vector3(1, 0, 0),
+                    new THREE.Vector3(0, 0, 0),
+                    3,
+                    0x00ff00
+                );
+                scene.add(velocityVector);
+                
+                // Create acceleration vector
+                const accelerationVector = new THREE.ArrowHelper(
+                    new THREE.Vector3(1, 0, 0),
+                    new THREE.Vector3(0, 0, 0),
+                    3,
+                    0xff0000
+                );
+                scene.add(accelerationVector);
+                
                 // Add distance markers
                 for (let i = -trackLength/2 + 5; i < trackLength/2; i += 5) {
                     const marker = new THREE.Mesh(
@@ -501,7 +731,7 @@
                 camera.position.set(0, 5, 10);
                 camera.lookAt(0, 0, 0);
                 
-                return { scene, camera, renderer, object, track, startMarker, endMarker, trackLength };
+                return { scene, camera, renderer, object, track, startMarker, endMarker, trackLength, velocityVector, accelerationVector };
             }
         }
         
@@ -514,22 +744,26 @@
         let circularAnimating = false;
         let linearTime = 0;
         let circularTime = 0;
+        let linearMotionType = 'uniform'; // 'uniform' or 'non-uniform'
+        let circularMotionType = 'uniform'; // 'uniform' or 'non-uniform'
         
         // Physics parameters
         let linearVelocity = 3;
-        let linearAcceleration = 1;
+        let linearAcceleration = 0.5;
         let circularRadius = 10;
         let angularVelocity = 1.5;
+        let angularAcceleration = 0.2;
         
         // Update display values
         function updateDisplayValues() {
             // Linear motion values
             document.getElementById('linear-velocity-value').textContent = linearVelocity.toFixed(1);
-            document.getElementById('linear-acceleration-value').textContent = linearAcceleration.toFixed(2);
+            document.getElementById('linear-acceleration-value').textContent = linearAcceleration.toFixed(1);
             
             // Circular motion values
             document.getElementById('circular-radius-value').textContent = circularRadius;
             document.getElementById('circular-velocity-value').textContent = angularVelocity.toFixed(1);
+            document.getElementById('circular-acceleration-value').textContent = angularAcceleration.toFixed(1);
         }
         
         // Update simulation parameters from UI
@@ -538,6 +772,7 @@
             linearAcceleration = parseFloat(document.getElementById('linear-acceleration').value);
             circularRadius = parseFloat(document.getElementById('circular-radius').value);
             angularVelocity = parseFloat(document.getElementById('circular-velocity').value);
+            angularAcceleration = parseFloat(document.getElementById('circular-acceleration').value);
             
             updateDisplayValues();
             
@@ -552,6 +787,7 @@
             linearSim.object.position.set(-linearSim.trackLength/2, 0.5, 0);
             updateLinearMetrics();
             linearAnimating = false;
+            document.getElementById('linear-start').textContent = 'Start';
         }
         
         function resetCircularSimulation() {
@@ -559,28 +795,105 @@
             circularSim.object.position.set(circularRadius, 0, 0);
             updateCircularMetrics();
             circularAnimating = false;
+            document.getElementById('circular-start').textContent = 'Start';
         }
         
         // Update metric displays
         function updateLinearMetrics() {
             const position = linearSim.object.position.x + linearSim.trackLength/2;
-            const velocity = linearVelocity + linearAcceleration * linearTime;
+            let velocity, acceleration;
+            
+            if (linearMotionType === 'uniform') {
+                velocity = linearVelocity;
+                acceleration = 0;
+            } else {
+                velocity = linearVelocity + linearAcceleration * linearTime;
+                acceleration = linearAcceleration;
+            }
             
             document.getElementById('linear-time').textContent = linearTime.toFixed(2);
             document.getElementById('linear-position').textContent = position.toFixed(2);
             document.getElementById('linear-velocity-display').textContent = velocity.toFixed(2);
-            document.getElementById('linear-acceleration-display').textContent = linearAcceleration.toFixed(2);
+            document.getElementById('linear-acceleration-display').textContent = acceleration.toFixed(2);
+            
+            // Update vectors
+            const objectPos = linearSim.object.position.clone();
+            linearSim.velocityVector.position.copy(objectPos);
+            linearSim.accelerationVector.position.copy(objectPos);
+            
+            if (velocity !== 0) {
+                linearSim.velocityVector.setDirection(new THREE.Vector3(
+                    velocity > 0 ? 1 : -1, 0, 0
+                ));
+                linearSim.velocityVector.setLength(Math.abs(velocity) * 0.5);
+            }
+            
+            if (acceleration !== 0) {
+                linearSim.accelerationVector.setDirection(new THREE.Vector3(
+                    acceleration > 0 ? 1 : -1, 0, 0
+                ));
+                linearSim.accelerationVector.setLength(Math.abs(acceleration) * 0.5);
+            }
         }
         
         function updateCircularMetrics() {
-            const angle = angularVelocity * circularTime;
-            const velocity = angularVelocity * circularRadius;
-            const acceleration = angularVelocity * angularVelocity * circularRadius;
+            let angle, velocity, acceleration;
+            
+            if (circularMotionType === 'uniform') {
+                angle = angularVelocity * circularTime;
+                velocity = angularVelocity * circularRadius;
+                acceleration = velocity * velocity / circularRadius; // Centripetal acceleration
+            } else {
+                angle = angularVelocity * circularTime + 0.5 * angularAcceleration * circularTime * circularTime;
+                velocity = (angularVelocity + angularAcceleration * circularTime) * circularRadius;
+                acceleration = Math.sqrt(
+                    Math.pow(angularAcceleration * circularRadius, 2) + // Tangential acceleration
+                    Math.pow(velocity * velocity / circularRadius, 2)    // Centripetal acceleration
+                );
+            }
             
             document.getElementById('circular-time').textContent = circularTime.toFixed(2);
             document.getElementById('circular-angle').textContent = angle.toFixed(2);
             document.getElementById('circular-velocity-display').textContent = velocity.toFixed(2);
             document.getElementById('circular-acceleration-display').textContent = acceleration.toFixed(2);
+            
+            // Update vectors
+            const objectPos = circularSim.object.position.clone();
+            circularSim.velocityVector.position.copy(objectPos);
+            circularSim.accelerationVector.position.copy(objectPos);
+            
+            // Velocity vector is tangent to the circle
+            const tangent = new THREE.Vector3(
+                -Math.sin(angle),
+                0,
+                Math.cos(angle)
+            ).normalize();
+            
+            circularSim.velocityVector.setDirection(tangent);
+            circularSim.velocityVector.setLength(velocity * 0.2);
+            
+            // Acceleration vector for non-uniform circular motion
+            if (circularMotionType === 'non-uniform' && angularAcceleration !== 0) {
+                const tangentialAccel = angularAcceleration * circularRadius;
+                const centripetalAccel = velocity * velocity / circularRadius;
+                
+                // Tangential acceleration vector
+                const tangentialAccelVec = tangent.clone().multiplyScalar(tangentialAccel);
+                
+                // Centripetal acceleration vector (towards center)
+                const centripetalAccelVec = objectPos.clone().normalize().multiplyScalar(-centripetalAccel);
+                
+                // Total acceleration vector
+                const totalAccelVec = tangentialAccelVec.add(centripetalAccelVec);
+                
+                circularSim.accelerationVector.setDirection(totalAccelVec.normalize());
+                circularSim.accelerationVector.setLength(totalAccelVec.length() * 0.1);
+            } else {
+                // For uniform circular motion, only centripetal acceleration
+                const centripetalAccelVec = objectPos.clone().normalize().multiplyScalar(-1);
+                circularSim.accelerationVector.setDirection(centripetalAccelVec);
+                circularSim.accelerationVector.setLength(acceleration * 0.1);
+            }
         }
         
         // Animation functions
@@ -589,13 +902,20 @@
             
             linearTime += 0.05;
             
-            // Calculate position using s = s0 + v0*t + 0.5*a*t^2
-            const displacement = linearVelocity * linearTime + 0.5 * linearAcceleration * linearTime * linearTime;
+            // Calculate position based on motion type
+            let displacement;
+            if (linearMotionType === 'uniform') {
+                displacement = linearVelocity * linearTime;
+            } else {
+                displacement = linearVelocity * linearTime + 0.5 * linearAcceleration * linearTime * linearTime;
+            }
+            
             linearSim.object.position.x = -linearSim.trackLength/2 + displacement;
             
             // Check boundaries
             if (Math.abs(linearSim.object.position.x) > linearSim.trackLength/2) {
                 linearAnimating = false;
+                document.getElementById('linear-start').textContent = 'Start';
                 linearSim.object.position.x = Math.sign(linearSim.object.position.x) * linearSim.trackLength/2;
             }
             
@@ -607,8 +927,14 @@
             
             circularTime += 0.05;
             
-            // Calculate position using circular motion equations
-            const angle = angularVelocity * circularTime;
+            // Calculate position based on motion type
+            let angle;
+            if (circularMotionType === 'uniform') {
+                angle = angularVelocity * circularTime;
+            } else {
+                angle = angularVelocity * circularTime + 0.5 * angularAcceleration * circularTime * circularTime;
+            }
+            
             circularSim.object.position.x = circularRadius * Math.cos(angle);
             circularSim.object.position.z = circularRadius * Math.sin(angle);
             
@@ -633,6 +959,7 @@
         document.getElementById('linear-acceleration').addEventListener('input', updateParameters);
         document.getElementById('circular-radius').addEventListener('input', updateParameters);
         document.getElementById('circular-velocity').addEventListener('input', updateParameters);
+        document.getElementById('circular-acceleration').addEventListener('input', updateParameters);
         
         document.getElementById('linear-start').addEventListener('click', function() {
             linearAnimating = !linearAnimating;
@@ -646,6 +973,39 @@
         
         document.getElementById('linear-reset').addEventListener('click', resetLinearSimulation);
         document.getElementById('circular-reset').addEventListener('click', resetCircularSimulation);
+        
+        // Motion type toggles
+        document.getElementById('linear-uniform-btn').addEventListener('click', function() {
+            linearMotionType = 'uniform';
+            this.classList.add('active');
+            document.getElementById('linear-non-uniform-btn').classList.remove('active');
+            document.getElementById('linear-acceleration-control').style.opacity = '0.5';
+            resetLinearSimulation();
+        });
+        
+        document.getElementById('linear-non-uniform-btn').addEventListener('click', function() {
+            linearMotionType = 'non-uniform';
+            this.classList.add('active');
+            document.getElementById('linear-uniform-btn').classList.remove('active');
+            document.getElementById('linear-acceleration-control').style.opacity = '1';
+            resetLinearSimulation();
+        });
+        
+        document.getElementById('circular-uniform-btn').addEventListener('click', function() {
+            circularMotionType = 'uniform';
+            this.classList.add('active');
+            document.getElementById('circular-non-uniform-btn').classList.remove('active');
+            document.getElementById('circular-acceleration-control').style.opacity = '0.5';
+            resetCircularSimulation();
+        });
+        
+        document.getElementById('circular-non-uniform-btn').addEventListener('click', function() {
+            circularMotionType = 'non-uniform';
+            this.classList.add('active');
+            document.getElementById('circular-uniform-btn').classList.remove('active');
+            document.getElementById('circular-acceleration-control').style.opacity = '1';
+            resetCircularSimulation();
+        });
         
         // Handle window resize
         window.addEventListener('resize', function() {
@@ -671,6 +1031,9 @@
         // Initialize
         updateParameters();
         updateDisplayValues();
+        // Initially hide acceleration control for uniform motion
+        document.getElementById('linear-acceleration-control').style.opacity = '0.5';
+        document.getElementById('circular-acceleration-control').style.opacity = '0.5';
         renderLinear();
         renderCircular();
     </script>
