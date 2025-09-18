@@ -14,6 +14,8 @@
             --light: #ecf0f1;
             --uniform: #9b59b6;
             --non-uniform: #f39c12;
+            --slow: #3498db;
+            --fast: #e74c3c;
         }
         
         * {
@@ -368,6 +370,46 @@
             opacity: 0.7;
             font-size: 0.9rem;
         }
+
+        /* New styles for speed variation */
+        .speed-variation {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .speed-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .speed-btn.active {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .speed-btn.slow {
+            background: var(--slow);
+        }
+        
+        .speed-btn.fast {
+            background: var(--fast);
+        }
+        
+        .non-uniform-controls {
+            display: none;
+            margin-top: 10px;
+        }
+        
+        .non-uniform-controls.active {
+            display: grid;
+        }
     </style>
 </head>
 <body>
@@ -388,6 +430,13 @@
                     <div class="motion-type">
                         <button class="motion-btn active" id="linear-uniform-btn">Uniform</button>
                         <button class="motion-btn" id="linear-non-uniform-btn">Non-Uniform</button>
+                    </div>
+                    
+                    <div class="non-uniform-controls" id="linear-speed-controls">
+                        <div class="speed-variation">
+                            <button class="speed-btn slow active" id="linear-slow-btn">Slow Variation</button>
+                            <button class="speed-btn fast" id="linear-fast-btn">Fast Variation</button>
+                        </div>
                     </div>
                     
                     <div class="canvas-container" id="linear-canvas"></div>
@@ -456,6 +505,13 @@
                     <div class="motion-type">
                         <button class="motion-btn active" id="circular-uniform-btn">Uniform</button>
                         <button class="motion-btn" id="circular-non-uniform-btn">Non-Uniform</button>
+                    </div>
+                    
+                    <div class="non-uniform-controls" id="circular-speed-controls">
+                        <div class="speed-variation">
+                            <button class="speed-btn slow active" id="circular-slow-btn">Slow Variation</button>
+                            <button class="speed-btn fast" id="circular-fast-btn">Fast Variation</button>
+                        </div>
                     </div>
                     
                     <div class="canvas-container" id="circular-canvas"></div>
@@ -551,6 +607,7 @@
                             For circular motion: α = dω/dt ≠ 0
                         </div>
                         <p>In non-uniform motion, the object covers unequal distances in equal intervals of time. Acceleration is present in the direction of motion.</p>
+                        <p>Non-uniform motion can have <span style="color: var(--slow)">slow variation</span> (gradual acceleration) or <span style="color: var(--fast)">fast variation</span> (rapid acceleration).</p>
                     </div>
                 </div>
                 
@@ -581,6 +638,11 @@
                             <td>Graph of position vs time</td>
                             <td>Straight line</td>
                             <td>Curved line</td>
+                        </tr>
+                        <tr class="non-uniform-row">
+                            <td>Speed variation</td>
+                            <td>N/A</td>
+                            <td>Slow or Fast acceleration</td>
                         </tr>
                     </table>
                 </div>
@@ -746,6 +808,8 @@
         let circularTime = 0;
         let linearMotionType = 'uniform'; // 'uniform' or 'non-uniform'
         let circularMotionType = 'uniform'; // 'uniform' or 'non-uniform'
+        let linearSpeedType = 'slow'; // 'slow' or 'fast' for non-uniform motion
+        let circularSpeedType = 'slow'; // 'slow' or 'fast' for non-uniform motion
         
         // Physics parameters
         let linearVelocity = 3;
@@ -773,6 +837,19 @@
             circularRadius = parseFloat(document.getElementById('circular-radius').value);
             angularVelocity = parseFloat(document.getElementById('circular-velocity').value);
             angularAcceleration = parseFloat(document.getElementById('circular-acceleration').value);
+            
+            // Adjust acceleration based on speed type
+            if (linearMotionType === 'non-uniform') {
+                if (linearSpeedType === 'fast') {
+                    linearAcceleration *= 2; // Double acceleration for fast variation
+                }
+            }
+            
+            if (circularMotionType === 'non-uniform') {
+                if (circularSpeedType === 'fast') {
+                    angularAcceleration *= 2; // Double acceleration for fast variation
+                }
+            }
             
             updateDisplayValues();
             
@@ -807,8 +884,14 @@
                 velocity = linearVelocity;
                 acceleration = 0;
             } else {
-                velocity = linearVelocity + linearAcceleration * linearTime;
-                acceleration = linearAcceleration;
+                // Apply speed variation factor
+                let accelerationFactor = 1;
+                if (linearSpeedType === 'fast') {
+                    accelerationFactor = 2;
+                }
+                
+                velocity = linearVelocity + (linearAcceleration * accelerationFactor) * linearTime;
+                acceleration = linearAcceleration * accelerationFactor;
             }
             
             document.getElementById('linear-time').textContent = linearTime.toFixed(2);
@@ -844,10 +927,16 @@
                 velocity = angularVelocity * circularRadius;
                 acceleration = velocity * velocity / circularRadius; // Centripetal acceleration
             } else {
-                angle = angularVelocity * circularTime + 0.5 * angularAcceleration * circularTime * circularTime;
-                velocity = (angularVelocity + angularAcceleration * circularTime) * circularRadius;
+                // Apply speed variation factor
+                let accelerationFactor = 1;
+                if (circularSpeedType === 'fast') {
+                    accelerationFactor = 2;
+                }
+                
+                angle = angularVelocity * circularTime + 0.5 * (angularAcceleration * accelerationFactor) * circularTime * circularTime;
+                velocity = (angularVelocity + (angularAcceleration * accelerationFactor) * circularTime) * circularRadius;
                 acceleration = Math.sqrt(
-                    Math.pow(angularAcceleration * circularRadius, 2) + // Tangential acceleration
+                    Math.pow((angularAcceleration * accelerationFactor) * circularRadius, 2) + // Tangential acceleration
                     Math.pow(velocity * velocity / circularRadius, 2)    // Centripetal acceleration
                 );
             }
@@ -874,7 +963,12 @@
             
             // Acceleration vector for non-uniform circular motion
             if (circularMotionType === 'non-uniform' && angularAcceleration !== 0) {
-                const tangentialAccel = angularAcceleration * circularRadius;
+                let accelerationFactor = 1;
+                if (circularSpeedType === 'fast') {
+                    accelerationFactor = 2;
+                }
+                
+                const tangentialAccel = (angularAcceleration * accelerationFactor) * circularRadius;
                 const centripetalAccel = velocity * velocity / circularRadius;
                 
                 // Tangential acceleration vector
@@ -907,7 +1001,13 @@
             if (linearMotionType === 'uniform') {
                 displacement = linearVelocity * linearTime;
             } else {
-                displacement = linearVelocity * linearTime + 0.5 * linearAcceleration * linearTime * linearTime;
+                // Apply speed variation factor
+                let accelerationFactor = 1;
+                if (linearSpeedType === 'fast') {
+                    accelerationFactor = 2;
+                }
+                
+                displacement = linearVelocity * linearTime + 0.5 * (linearAcceleration * accelerationFactor) * linearTime * linearTime;
             }
             
             linearSim.object.position.x = -linearSim.trackLength/2 + displacement;
@@ -932,7 +1032,13 @@
             if (circularMotionType === 'uniform') {
                 angle = angularVelocity * circularTime;
             } else {
-                angle = angularVelocity * circularTime + 0.5 * angularAcceleration * circularTime * circularTime;
+                // Apply speed variation factor
+                let accelerationFactor = 1;
+                if (circularSpeedType === 'fast') {
+                    accelerationFactor = 2;
+                }
+                
+                angle = angularVelocity * circularTime + 0.5 * (angularAcceleration * accelerationFactor) * circularTime * circularTime;
             }
             
             circularSim.object.position.x = circularRadius * Math.cos(angle);
@@ -980,6 +1086,7 @@
             this.classList.add('active');
             document.getElementById('linear-non-uniform-btn').classList.remove('active');
             document.getElementById('linear-acceleration-control').style.opacity = '0.5';
+            document.getElementById('linear-speed-controls').classList.remove('active');
             resetLinearSimulation();
         });
         
@@ -988,6 +1095,7 @@
             this.classList.add('active');
             document.getElementById('linear-uniform-btn').classList.remove('active');
             document.getElementById('linear-acceleration-control').style.opacity = '1';
+            document.getElementById('linear-speed-controls').classList.add('active');
             resetLinearSimulation();
         });
         
@@ -996,6 +1104,7 @@
             this.classList.add('active');
             document.getElementById('circular-non-uniform-btn').classList.remove('active');
             document.getElementById('circular-acceleration-control').style.opacity = '0.5';
+            document.getElementById('circular-speed-controls').classList.remove('active');
             resetCircularSimulation();
         });
         
@@ -1004,6 +1113,36 @@
             this.classList.add('active');
             document.getElementById('circular-uniform-btn').classList.remove('active');
             document.getElementById('circular-acceleration-control').style.opacity = '1';
+            document.getElementById('circular-speed-controls').classList.add('active');
+            resetCircularSimulation();
+        });
+        
+        // Speed variation toggles
+        document.getElementById('linear-slow-btn').addEventListener('click', function() {
+            linearSpeedType = 'slow';
+            this.classList.add('active');
+            document.getElementById('linear-fast-btn').classList.remove('active');
+            resetLinearSimulation();
+        });
+        
+        document.getElementById('linear-fast-btn').addEventListener('click', function() {
+            linearSpeedType = 'fast';
+            this.classList.add('active');
+            document.getElementById('linear-slow-btn').classList.remove('active');
+            resetLinearSimulation();
+        });
+        
+        document.getElementById('circular-slow-btn').addEventListener('click', function() {
+            circularSpeedType = 'slow';
+            this.classList.add('active');
+            document.getElementById('circular-fast-btn').classList.remove('active');
+            resetCircularSimulation();
+        });
+        
+        document.getElementById('circular-fast-btn').addEventListener('click', function() {
+            circularSpeedType = 'fast';
+            this.classList.add('active');
+            document.getElementById('circular-slow-btn').classList.remove('active');
             resetCircularSimulation();
         });
         
